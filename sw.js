@@ -2,12 +2,12 @@ const CACHE_NAME = "zoxa-v1.1";
 const ASSETS = [
   "./",
   "./index.html",
-  "./style.css",
+  "./styles.css",
   "./dist/app.js", 
   "./dist/search.js",
   "./dist/types.js",
-  "./src/countdowntimer.js",
-  "./data/zoxa.json",
+  "./data/songs.json", 
+  "./data/bible.json",
   "./htmlFIles/moniter.html",
   "./htmlFIles/view.html",
   "./lib/fuse.mjs"
@@ -17,7 +17,14 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+      console.log("Caching assets individually...");
+      return Promise.all(
+        ASSETS.map((url) => {
+          return cache.add(url).catch((err) => {
+            console.error(`Failed to cache: ${url}`, err);
+          });
+        })
+      );
     })
   );
 });
