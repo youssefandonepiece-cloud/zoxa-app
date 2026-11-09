@@ -293,15 +293,31 @@ if (!search || !searchResult) {
 
   let currentToken: { cancelled: boolean } | null = null;
 
-  async function initializeSearch(): Promise<void> {
+  
+async function initializeSearch(): Promise<void> {
     try {
-      const response = await fetch("./data/zoxa.json");
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      // Fetch both files at the same time
+      const [songsRes, bibleRes] = await Promise.all([
+        fetch("./data/songs.json"),
+        fetch("./data/bible.json")
+      ]);
 
-      const data: ZoxaData = await response.json();
+      if (!songsRes.ok) throw new Error(`Songs HTTP ${songsRes.status}`);
+      if (!bibleRes.ok) throw new Error(`Bible HTTP ${bibleRes.status}`);
+
+      const songsData: ZoxaData = await songsRes.json();
+      const bibleData: ZoxaData = await bibleRes.json();
+
+      // Combine them into one object for the search engine
+      const combinedData: ZoxaData = {
+        version: songsData.version || 1,
+        songs: songsData.songs || [],
+        bible: bibleData.bible
+      };
+
       await yieldToMain();
 
-      engine = await createSearchEngine(data);
+      engine = await createSearchEngine(combinedData);
 
       if ((window as any).__ZOXA_DEBUG__) {
         console.log("Zoxa search is ready.");
@@ -317,16 +333,7 @@ if (!search || !searchResult) {
     }
   }
 
-  async function runSearch(): Promise<void> {
-    if (!engine) return;
-
-    const query = searchEl.value.trim();
-
-    if (!query) {
-      currentToken = null;
-      resultEl.textContent = "Start typing to search.";
-      return;
-    }
+  
 
     if (currentToken) currentToken.cancelled = true;
     const token = { cancelled: false };
